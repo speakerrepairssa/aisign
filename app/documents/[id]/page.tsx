@@ -11,6 +11,8 @@ import { FileText, Download, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
 
+export const dynamicParams = true;
+
 export default function DocumentViewPage() {
   const params = useParams();
   const router = useRouter();

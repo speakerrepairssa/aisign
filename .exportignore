@@ -1,0 +1,2 @@
+# Ignore API routes during static export
+app/api

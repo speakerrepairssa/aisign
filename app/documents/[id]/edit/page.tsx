@@ -15,6 +15,8 @@ import { nanoid } from 'nanoid';
 import { analyzePDFFonts, detectFontAtPosition, recommendFontSize, calculateCharacterCapacity, recommendPlaceholderHeight, type FontAnalysis } from '@/lib/fontDetection';
 import AddRecipientsModal from '@/components/submissions/AddRecipientsModal';
 
+export const dynamicParams = true;
+
 export default function EditTemplatePage() {
   const params = useParams();
   const router = useRouter();
