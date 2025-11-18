@@ -5,7 +5,7 @@ import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, addDoc, 
 import { db } from '@/lib/firebase';
 import { useAuthStore } from '@/store/authStore';
 import { Document } from '@/types';
-import { FileText, Eye, Trash2, Send, Link as LinkIcon, Archive, Copy, ArchiveRestore } from 'lucide-react';
+import { FileText, Eye, Trash2, Send, Link as LinkIcon, Archive, Copy, ArchiveRestore, User } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -128,7 +128,7 @@ export default function DocumentList() {
   return (
     <div className="space-y-4">
       {/* Archive Toggle */}
-      <div className="flex justify-end">
+      <div className="flex justify-end mb-4">
         <button
           onClick={() => setShowArchived(!showArchived)}
           className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-2"
@@ -138,7 +138,61 @@ export default function DocumentList() {
         </button>
       </div>
 
-      <div className="bg-white shadow-sm rounded-lg overflow-hidden">
+      {/* Card Grid View */}
+      {filteredDocuments.length === 0 ? (
+        <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+          <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500">
+            {showArchived ? 'No archived documents' : 'No documents yet. Upload a document to get started.'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredDocuments.map((document) => (
+            <Link
+              key={document.id}
+              href={document.isTemplate ? `/template?id=${document.id}` : `/view-document?id=${document.id}`}
+              className="block bg-white rounded-lg shadow-sm hover:shadow-md transition-all overflow-hidden border border-gray-200 hover:border-primary-400"
+            >
+              {/* Document Preview/Icon */}
+              <div className="h-48 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center relative">
+                <FileText className="h-20 w-20 text-gray-300" />
+                {document.isTemplate && (
+                  <span className="absolute top-3 right-3 text-xs bg-purple-600 text-white px-3 py-1 rounded-full font-medium">
+                    Template
+                  </span>
+                )}
+              </div>
+              
+              {/* Document Info */}
+              <div className="p-5">
+                <h3 className="font-semibold text-gray-900 mb-2 truncate text-lg" title={document.title}>
+                  {document.title}
+                </h3>
+                <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
+                  <User className="h-4 w-4" />
+                  <span className="truncate">{document.ownerEmail}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <span>{format(document.createdAt, 'dd MMM yyyy')}</span>
+                    <span>•</span>
+                    <span>{format(document.createdAt, 'HH:mm')}</span>
+                  </div>
+                  {document.submissionCount && document.submissionCount > 0 && (
+                    <div className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded font-medium">
+                      {document.submissionCount} submission{document.submissionCount !== 1 ? 's' : ''}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* Remove the old table structure below */}
+      <div className="hidden bg-white shadow-sm rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -184,17 +238,27 @@ export default function DocumentList() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2 flex-wrap">
-                      <Link
-                        href={`/documents/${document.id}`}
-                        className="text-primary-600 hover:text-primary-900 flex items-center gap-1"
-                        title="View"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Link>
+                      {document.isTemplate ? (
+                        <Link
+                          href={`/template?id=${document.id}`}
+                          className="text-primary-600 hover:text-primary-900 flex items-center gap-1"
+                          title="View template & submissions"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                      ) : (
+                        <Link
+                          href={`/view-document?id=${document.id}`}
+                          className="text-primary-600 hover:text-primary-900 flex items-center gap-1"
+                          title="View"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                      )}
                       
                       {document.status === 'draft' && !document.isTemplate && (
                         <Link
-                          href={`/documents/${document.id}/edit`}
+                          href={`/edit-document?id=${document.id}`}
                           className="text-purple-600 hover:text-purple-900 flex items-center gap-1"
                           title="Create template"
                         >
@@ -204,7 +268,7 @@ export default function DocumentList() {
                       
                       {document.isTemplate && (
                         <Link
-                          href={`/documents/${document.id}/edit`}
+                          href={`/edit-document?id=${document.id}`}
                           className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
                           title="Edit template"
                         >

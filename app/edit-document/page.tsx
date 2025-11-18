@@ -1,24 +1,22 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useRef, useEffect, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Document as DocType } from '@/types';
 import { Placeholder } from '@/types/template';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { ArrowLeft, Plus, Save, Trash2, Move, GripVertical, UserPlus } from 'lucide-react';
-import Link from 'next/link';
+import { ArrowLeft, Plus, Save, Trash2, Move, GripVertical, UserPlus, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { nanoid } from 'nanoid';
 import { analyzePDFFonts, detectFontAtPosition, recommendFontSize, calculateCharacterCapacity, recommendPlaceholderHeight, type FontAnalysis } from '@/lib/fontDetection';
 import AddRecipientsModal from '@/components/submissions/AddRecipientsModal';
 
-export const dynamicParams = true;
-
-export default function EditTemplatePage() {
-  const params = useParams();
+function EditTemplateContent() {
+  const searchParams = useSearchParams();
+  const documentId = searchParams.get('id');
   const router = useRouter();
   const [document, setDocument] = useState<DocType | null>(null);
   const [placeholders, setPlaceholders] = useState<Placeholder[]>([]);
@@ -39,10 +37,10 @@ export default function EditTemplatePage() {
 
   useEffect(() => {
     const fetchDocument = async () => {
-      if (!params.id) return;
+      if (!documentId) return;
 
       try {
-        const docRef = doc(db, 'documents', params.id as string);
+        const docRef = doc(db, 'documents', documentId);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
@@ -71,7 +69,7 @@ export default function EditTemplatePage() {
     };
 
     fetchDocument();
-  }, [params.id, router]);
+  }, [documentId, router]);
 
   const analyzeFonts = async (fileUrl: string) => {
     setIsAnalyzing(true);
@@ -310,13 +308,13 @@ export default function EditTemplatePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="mb-6">
-            <Link
-              href="/dashboard"
+            <button
+              onClick={() => router.push('/dashboard')}
               className="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 mb-4"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Documents
-            </Link>
+            </button>
             <div className="flex justify-between items-start">
               <div>
                 {isEditingTitle ? (
@@ -842,5 +840,21 @@ export default function EditTemplatePage() {
         )}
       </DashboardLayout>
     </ProtectedRoute>
+  );
+}
+
+export default function EditDocumentPage() {
+  return (
+    <Suspense fallback={
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="flex justify-center items-center min-h-screen">
+            <Loader2 className="h-12 w-12 animate-spin text-primary-600" />
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    }>
+      <EditTemplateContent />
+    </Suspense>
   );
 }

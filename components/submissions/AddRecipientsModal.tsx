@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { X, Plus, Trash2, Mail, User } from 'lucide-react';
 import { createSubmission } from '@/hooks/useSubmissions';
 import { useAuthStore } from '@/store/authStore';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 
 interface Recipient {
@@ -72,8 +74,85 @@ export default function AddRecipientsModal({
 
     setLoading(true);
     try {
-      await createSubmission(templateId, validRecipients, user.uid);
-      toast.success(`Submission created for ${validRecipients.length} recipient(s)!`);
+      // First, get email config from user settings
+      const settingsRef = doc(db, 'settings', user.uid);
+      const settingsSnap = await getDoc(settingsRef);
+      
+      let emailConfig = null;
+      
+      // Check if user has saved email settings
+      if (settingsSnap.exists()) {
+        const settings = settingsSnap.data();
+        console.log('Fetched settings from Firestore:', settings);
+        if (settings.email && settings.email.enabled) {
+          emailConfig = settings.email;
+          console.log('Using saved email config:', {
+            provider: emailConfig.provider,
+            smtpHost: emailConfig.smtpHost,
+            smtpPort: emailConfig.smtpPort,
+            fromEmail: emailConfig.fromEmail,
+          });
+        }
+      }
+      
+      // If no saved settings, show error
+      if (!emailConfig) {
+        toast.error('Please configure and save your email settings in the Settings page first!');
+        setLoading(false);
+        return;
+      }
+      
+      const submission = await createSubmission(templateId, validRecipients, user.uid);
+      
+      console.log('Created submission:', submission.id);
+      console.log('Sending emails to recipients:', submission.recipients.length);
+      
+      // Send emails to all recipients
+      const emailPromises = submission.recipients.map(async (recipient, index) => {
+        try {
+          console.log(`Sending email ${index + 1} to:`, recipient.email);
+          
+          const response = await fetch('/api/email/send-submission', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              recipient: {
+                email: recipient.email,
+                name: recipient.name,
+              },
+              submissionLink: recipient.submissionLink,
+              templateName: templateName,
+              senderName: user.email || 'AiSign',
+              config: emailConfig,
+            }),
+          });
+          
+          if (response.ok) {
+            console.log(`Email sent to ${recipient.email}`);
+            // Update recipient status to "sent"
+            const { updateRecipientStatus } = await import('@/hooks/useSubmissions');
+            await updateRecipientStatus(submission.id, recipient.id, 'sent');
+          } else {
+            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+            console.error(`Failed to send email to ${recipient.email}:`, errorData);
+            toast.error(`Failed to send email to ${recipient.email}: ${errorData.error || 'SMTP authentication failed'}`);
+            throw new Error(`Email failed: ${errorData.error}`);
+          }
+        } catch (emailError) {
+          console.error(`Error sending email to ${recipient.email}:`, emailError);
+        }
+      });
+      
+      const results = await Promise.allSettled(emailPromises);
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const failCount = results.filter(r => r.status === 'rejected').length;
+      
+      if (successCount > 0) {
+        toast.success(`Submission created! ${successCount} email(s) sent successfully${failCount > 0 ? `, ${failCount} failed` : ''}!`);
+      } else {
+        toast.error(`Submission created but all ${failCount} email(s) failed to send. Check your SMTP settings.`);
+      }
+      
       onClose();
       setRecipients([{ email: '', name: '' }]);
     } catch (error) {

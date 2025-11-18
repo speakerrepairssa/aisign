@@ -8,14 +8,17 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Download, Eye, Link as LinkIcon, Trash2, Search, Filter } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '@/store/authStore';
 
 export default function SubmissionsPage() {
+  const { user } = useAuthStore();
   const [statusFilter, setStatusFilter] = useState<SubmissionStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const { submissions, loading } = useSubmissions(
     undefined,
-    statusFilter === 'all' ? undefined : statusFilter
+    statusFilter === 'all' ? undefined : statusFilter,
+    user?.uid
   );
 
   const filteredSubmissions = submissions.filter((submission) => {

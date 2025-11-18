@@ -26,7 +26,7 @@
     "react-firebase-hooks": "^5.1.1",
     "react-hot-toast": "^2.4.1",
     "react-pdf": "^9.1.0",
-    "signature_pad": "^5.0.3",
+    "signature_pad": "^5.1.2",
     "zustand": "^4.5.4"
   },
   "devDependencies": {

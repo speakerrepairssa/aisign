@@ -1,22 +1,35 @@
 import { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, doc, getDoc, increment } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, doc, getDoc, increment, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Submission, Recipient, SubmissionStatus } from '@/types/submission';
 import { nanoid } from 'nanoid';
 
-export function useSubmissions(templateId?: string, statusFilter?: SubmissionStatus) {
+export function useSubmissions(templateId?: string, statusFilter?: SubmissionStatus, userId?: string) {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // If no userId provided, can't fetch submissions due to security rules
+    if (!userId) {
+      setSubmissions([]);
+      setLoading(false);
+      return;
+    }
+
     let q = query(
       collection(db, 'submissions'),
+      where('createdBy', '==', userId),
       orderBy('createdAt', 'desc')
     );
 
     if (templateId) {
-      q = query(q, where('templateId', '==', templateId));
+      q = query(
+        collection(db, 'submissions'),
+        where('createdBy', '==', userId),
+        where('templateId', '==', templateId),
+        orderBy('createdAt', 'desc')
+      );
     }
 
     if (statusFilter) {
@@ -47,7 +60,7 @@ export function useSubmissions(templateId?: string, statusFilter?: SubmissionSta
     );
 
     return () => unsubscribe();
-  }, [templateId, statusFilter]);
+  }, [templateId, statusFilter, userId]);
 
   return { submissions, loading, error };
 }
@@ -69,13 +82,16 @@ export async function createSubmission(
   const now = new Date();
   const submissionId = nanoid();
 
-  const recipientsList: Recipient[] = recipients.map((recipient) => ({
-    id: nanoid(),
-    email: recipient.email,
-    name: recipient.name || recipient.email,
-    status: 'pending' as SubmissionStatus,
-    submissionLink: `${window.location.origin}/submit/${submissionId}/${nanoid(16)}`,
-  }));
+  const recipientsList: Recipient[] = recipients.map((recipient) => {
+    const token = nanoid(16);
+    return {
+      id: nanoid(),
+      email: recipient.email,
+      name: recipient.name || recipient.email,
+      status: 'pending' as SubmissionStatus,
+      submissionLink: `${window.location.origin}/submit?id=${submissionId}&token=${token}`,
+    };
+  });
 
   const submission: Omit<Submission, 'id'> = {
     templateId,
@@ -85,9 +101,20 @@ export async function createSubmission(
     createdBy: userId,
     createdAt: now,
     updatedAt: now,
+    // Store a complete copy of the template data in the submission
+    // This ensures the submission is independent and won't break if the template is deleted/modified
+    templateData: {
+      title: templateData.title || 'Untitled Template',
+      pdfUrl: templateData.fileUrl || '', // The field is called 'fileUrl' in templates
+      placeholders: templateData.placeholders || [],
+      pages: templateData.pages || 1,
+      description: templateData.description || '',
+    },
   };
 
-  const docRef = await addDoc(collection(db, 'submissions'), submission);
+  // Use setDoc with the generated submissionId instead of addDoc
+  const docRef = doc(db, 'submissions', submissionId);
+  await setDoc(docRef, submission);
 
   // Update template submission count
   await updateDoc(templateRef, {
@@ -96,7 +123,7 @@ export async function createSubmission(
   });
 
   return {
-    id: docRef.id,
+    id: submissionId,
     ...submission,
   };
 }

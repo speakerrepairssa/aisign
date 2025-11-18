@@ -12,6 +12,14 @@ export interface Recipient {
   submissionLink?: string;
 }
 
+export interface SubmissionTemplateData {
+  title: string;
+  pdfUrl: string;
+  placeholders: any[];
+  pages: number;
+  description?: string;
+}
+
 export interface Submission {
   id: string;
   templateId: string;
@@ -25,6 +33,8 @@ export interface Submission {
   filledData?: Record<string, any>;
   completedFileUrl?: string;
   metadata?: Record<string, any>;
+  // Complete copy of template data at time of submission
+  templateData?: SubmissionTemplateData;
 }
 
 export interface SubmissionLink {
