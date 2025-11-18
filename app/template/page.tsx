@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/authStore';
 import { Document as DocType } from '@/types';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { ArrowLeft, Link as LinkIcon, Archive, Copy, Edit, UserPlus, Loader2, Eye, Download, Trash2, MoreVertical, ArchiveRestore } from 'lucide-react';
+import { ArrowLeft, FileText, Calendar, User, Link as LinkIcon, Archive, Copy, Edit, UserPlus, Loader2, Eye, Download, Trash2, ArchiveRestore } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSubmissions } from '@/hooks/useSubmissions';
 import { format } from 'date-fns';
@@ -21,7 +21,6 @@ function TemplateDetailContent() {
   const { user } = useAuthStore();
   const [template, setTemplate] = useState<DocType | null>(null);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'sent' | 'opened' | 'completed'>('all');
   const [showRecipientsModal, setShowRecipientsModal] = useState(false);
   const { submissions, loading: submissionsLoading } = useSubmissions(
     templateId || undefined,
@@ -61,16 +60,16 @@ function TemplateDetailContent() {
   }, [templateId, router]);
 
   const handleCopyLink = () => {
-    const link = `${window.location.origin}/view-document?id=${templateId}`;
+    const link = `${window.location.origin}/documents/${templateId}`;
     navigator.clipboard.writeText(link);
-    toast.success('Link copied to clipboard!');
+    toast.success('Template link copied!');
   };
 
   const handleArchive = async () => {
-    if (!template) return;
+    if (!template || !templateId) return;
     
     try {
-      await updateDoc(doc(db, 'documents', template.id), {
+      await updateDoc(doc(db, 'documents', templateId), {
         isArchived: !template.isArchived,
         updatedAt: new Date(),
       });
@@ -131,21 +130,6 @@ function TemplateDetailContent() {
     }
   };
 
-  const filteredSubmissions = submissions.filter(sub => {
-    if (statusFilter === 'all') return true;
-    return sub.status === statusFilter;
-  });
-
-  const getStatusBadge = (status: string) => {
-    const badges = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      sent: 'bg-blue-100 text-blue-800',
-      opened: 'bg-orange-100 text-orange-800',
-      completed: 'bg-green-100 text-green-800',
-    };
-    return badges[status as keyof typeof badges] || 'bg-gray-100 text-gray-800';
-  };
-
   if (loading) {
     return (
       <ProtectedRoute>
@@ -163,216 +147,369 @@ function TemplateDetailContent() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Back Button */}
           <button
             onClick={() => router.push('/dashboard')}
-            className="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 mb-6"
+            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6 font-medium"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Documents
+            Back
           </button>
 
-          {/* Template Header */}
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">{template.title}</h1>
-                <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge('default')}`}>
-                    {template.isArchived ? 'Archived' : 'Default'}
-                  </span>
-                  <span>Created {format(template.createdAt, 'MMM dd, yyyy')}</span>
-                  {template.isTemplate && (
-                    <span className="text-purple-600 font-medium">Template</span>
-                  )}
+          {/* Template Info Card */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-gray-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-1">File Name</p>
+                  <p className="text-sm text-gray-900 break-words">{template.fileName}</p>
                 </div>
               </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 flex-wrap">
-                <button
-                  onClick={handleCopyLink}
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <LinkIcon className="h-4 w-4" />
-                  LINK
-                </button>
-                <button
-                  onClick={handleArchive}
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  {template.isArchived ? (
-                    <>
-                      <ArchiveRestore className="h-4 w-4" />
-                      RESTORE
-                    </>
-                  ) : (
-                    <>
-                      <Archive className="h-4 w-4" />
-                      ARCHIVE
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={handleClone}
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <Copy className="h-4 w-4" />
-                  CLONE
-                </button>
-                <button
-                  onClick={handleEdit}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-                >
-                  <Edit className="h-4 w-4" />
-                  EDIT
-                </button>
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <Calendar className="h-5 w-5 text-gray-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-1">Created</p>
+                  <p className="text-sm text-gray-900">{format(template.createdAt, 'MMM dd, yyyy')}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <User className="h-5 w-5 text-gray-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-1">Status</p>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    template.isArchived ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800'
+                  }`}>
+                    {template.isArchived ? 'Archived' : 'Draft'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Submissions Section */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Submissions</h2>
-              <div className="flex gap-3">
-                <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                  <Download className="h-4 w-4" />
-                  EXPORT
-                </button>
-                <button
-                  onClick={() => setShowRecipientsModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                >
-                  <UserPlus className="h-4 w-4" />
-                  ADD RECIPIENTS
-                </button>
-              </div>
-            </div>
-
-            {/* Status Filter Tabs */}
-            <div className="flex gap-2 mb-6 border-b">
-              <button
-                onClick={() => setStatusFilter('all')}
-                className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-                  statusFilter === 'all'
-                    ? 'border-primary-600 text-primary-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                All
-                <span className="ml-2 px-2 py-0.5 text-xs bg-gray-100 rounded-full">
-                  {submissions.length}
-                </span>
-              </button>
-              <button
-                onClick={() => setStatusFilter('pending')}
-                className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-                  statusFilter === 'pending'
-                    ? 'border-primary-600 text-primary-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Pending
-                <span className="ml-2 px-2 py-0.5 text-xs bg-gray-100 rounded-full">
-                  {submissions.filter(s => s.status === 'pending').length}
-                </span>
-              </button>
-              <button
-                onClick={() => setStatusFilter('completed')}
-                className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-                  statusFilter === 'completed'
-                    ? 'border-primary-600 text-primary-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Completed
-                <span className="ml-2 px-2 py-0.5 text-xs bg-gray-100 rounded-full">
-                  {submissions.filter(s => s.status === 'completed').length}
-                </span>
-              </button>
-            </div>
-
-            {/* Submissions List */}
-            {submissionsLoading ? (
-              <div className="text-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary-600 mx-auto" />
-              </div>
-            ) : filteredSubmissions.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <p>No submissions yet</p>
-                <p className="text-sm mt-2">Click "Add Recipients" to send this template to clients</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredSubmissions.map((submission) => (
-                  <div
-                    key={submission.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:border-primary-300 transition-colors"
-                  >
-                    <div className="flex items-center gap-4 flex-1">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium uppercase ${getStatusBadge(submission.status)}`}>
-                        {submission.status}
-                      </span>
-                      <div>
-                        {submission.recipients.map((recipient, idx) => (
-                          <div key={idx} className="font-medium text-gray-900">
-                            {recipient.name || recipient.email}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      {submission.status === 'completed' ? (
-                        <button className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800">
-                          <Download className="h-4 w-4" />
-                          DOWNLOAD
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => submission.recipients[0] && handleCopySubmissionLink(submission.recipients[0].submissionLink || '')}
-                          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800"
-                        >
-                          <LinkIcon className="h-4 w-4" />
-                          COPY LINK
-                        </button>
-                      )}
-                      <button 
-                        onClick={() => {
-                          const submissionLink = submission.recipients[0]?.submissionLink;
-                          if (submissionLink) {
-                            window.open(submissionLink, '_blank');
-                          }
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                      >
-                        <Eye className="h-4 w-4" />
-                        VIEW
-                      </button>
-                      <button
-                        onClick={() => handleDeleteSubmission(submission.id)}
-                        className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                      >
-                        <Trash2 className="h-4 w-4 text-gray-600" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Pagination */}
-            {filteredSubmissions.length > 0 && (
-              <div className="mt-6 flex justify-between items-center text-sm text-gray-600">
-                <span>1-{Math.min(10, filteredSubmissions.length)} of {filteredSubmissions.length} submissions</span>
+          {/* Header with Title and Actions */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-6">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold text-gray-900">{template.title}</h1>
                 <div className="flex gap-2">
-                  <button className="px-3 py-1 border rounded hover:bg-gray-50">PAGE 1</button>
-                  <button className="px-3 py-1 border rounded hover:bg-gray-50">»</button>
+                  <button
+                    onClick={handleCopyLink}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                  >
+                    <LinkIcon className="h-4 w-4" />
+                    LINK
+                  </button>
+                  <button
+                    onClick={handleArchive}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                  >
+                    {template.isArchived ? (
+                      <>
+                        <ArchiveRestore className="h-4 w-4" />
+                        ARCHIVE
+                      </>
+                    ) : (
+                      <>
+                        <Archive className="h-4 w-4" />
+                        ARCHIVE
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleClone}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                  >
+                    <Copy className="h-4 w-4" />
+                    CLONE
+                  </button>
+                  <button
+                    onClick={handleEdit}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-white bg-gray-900 rounded-md hover:bg-gray-800 transition-colors"
+                  >
+                    <Edit className="h-4 w-4" />
+                    EDIT
+                  </button>
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* Submissions Header */}
+            <div className="px-6 py-4">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Submissions</h2>
+                <div className="flex gap-2">
+                  <button className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
+                    <Download className="h-4 w-4" />
+                    EXPORT
+                  </button>
+                  <button
+                    onClick={() => setShowRecipientsModal(true)}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-white bg-gray-900 rounded-md hover:bg-gray-800 transition-colors"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    ADD RECIPIENTS
+                  </button>
+                </div>
+              </div>
+
+              {/* Submissions Content */}
+              {submissionsLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                </div>
+              ) : submissions.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FileText className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-sm font-medium text-gray-900 mb-1">No submissions yet</h3>
+                  <p className="text-sm text-gray-500 mb-4">Get started by sending this template to recipients</p>
+                  <button
+                    onClick={() => setShowRecipientsModal(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-md hover:bg-gray-800"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    Add Recipients
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {submissions.map((submission) => (
+                    <div
+                      key={submission.id}
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide ${
+                          submission.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                          submission.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          submission.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {submission.status}
+                        </span>
+                        <div className="font-medium text-gray-900">
+                          {submission.recipients.map((recipient, idx) => (
+                            <span key={idx}>{recipient.name || recipient.email}</span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            if (submission.status === 'completed' && submission.completedFileUrl) {
+                              handleCopySubmissionLink(submission.completedFileUrl);
+                            } else {
+                              submission.recipients[0] && handleCopySubmissionLink(submission.recipients[0].submissionLink || '');
+                            }
+                          }}
+                          className="flex items-center gap-1 px-3 py-2 text-xs font-medium text-white bg-gray-900 rounded-md hover:bg-gray-800 transition-colors"
+                        >
+                          <LinkIcon className="h-3 w-3" />
+                          {submission.status === 'completed' ? 'COPY DOCUMENT' : 'COPY LINK'}
+                        </button>
+                        <button 
+                          onClick={() => {
+                            if (submission.status === 'completed' && submission.completedFileUrl) {
+                              window.open(submission.completedFileUrl, '_blank');
+                            } else {
+                              const submissionLink = submission.recipients[0]?.submissionLink;
+                              if (submissionLink) {
+                                window.open(submissionLink, '_blank');
+                              }
+                            }
+                          }}
+                          className="flex items-center gap-1 px-3 py-2 text-xs font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                        >
+                          <Eye className="h-3 w-3" />
+                          {submission.status === 'completed' ? 'VIEW DOCUMENT' : 'VIEW FORM'}
+                        </button>
+                        {submission.status === 'completed' && submission.completedFileUrl && (
+                          <a
+                            href={submission.completedFileUrl}
+                            download
+                            className="flex items-center gap-1 px-3 py-2 text-xs font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                          >
+                            <Download className="h-3 w-3" />
+                            DOWNLOAD
+                          </a>
+                        )}
+                        <button
+                          onClick={() => handleDeleteSubmission(submission.id)}
+                          className="flex items-center gap-1 px-3 py-2 text-xs font-medium text-gray-500 hover:text-red-600 border border-gray-300 rounded-md hover:border-red-300 transition-colors"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>          {/* Header with Title and Actions */}
+          <div className="bg-white rounded-lg shadow-sm mb-6">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold text-gray-900">{template.title}</h1>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCopyLink}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    <LinkIcon className="h-4 w-4" />
+                    LINK
+                  </button>
+                  <button
+                    onClick={handleArchive}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    {template.isArchived ? (
+                      <>
+                        <ArchiveRestore className="h-4 w-4" />
+                        ARCHIVE
+                      </>
+                    ) : (
+                      <>
+                        <Archive className="h-4 w-4" />
+                        ARCHIVE
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleClone}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    <Copy className="h-4 w-4" />
+                    CLONE
+                  </button>
+                  <button
+                    onClick={handleEdit}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-gray-900 rounded-lg hover:bg-gray-800"
+                  >
+                    <Edit className="h-4 w-4" />
+                    EDIT
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Submissions Header */}
+            <div className="px-6 py-4">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">Submissions</h2>
+                <div className="flex gap-2">
+                  <button className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    <Download className="h-4 w-4" />
+                    EXPORT
+                  </button>
+                  <button
+                    onClick={() => setShowRecipientsModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-gray-900 rounded-lg hover:bg-gray-800"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    ADD RECIPIENTS
+                  </button>
+                </div>
+              </div>
+
+              {/* Submissions Content */}
+              {submissionsLoading ? (
+                <div className="text-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-400 mx-auto" />
+                </div>
+              ) : submissions.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <p>No submissions yet</p>
+                  <p className="text-sm mt-2">Click "Add Recipients" to send this template to clients</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {submissions.map((submission) => (
+                    <div
+                      key={submission.id}
+                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors bg-gray-50"
+                    >
+                      <div className="flex items-center gap-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium uppercase ${
+                          submission.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                          submission.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          submission.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {submission.status}
+                        </span>
+                        <div className="text-gray-900 font-medium">
+                          {submission.recipients.map((recipient, idx) => (
+                            <span key={idx}>{recipient.name || recipient.email}</span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            if (submission.status === 'completed' && submission.completedFileUrl) {
+                              // Copy completed document URL
+                              handleCopySubmissionLink(submission.completedFileUrl);
+                            } else {
+                              // Copy submission form link
+                              submission.recipients[0] && handleCopySubmissionLink(submission.recipients[0].submissionLink || '');
+                            }
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-gray-900 rounded-lg hover:bg-gray-800"
+                        >
+                          <LinkIcon className="h-4 w-4" />
+                          {submission.status === 'completed' ? 'COPY DOCUMENT' : 'COPY LINK'}
+                        </button>
+                        <button 
+                          onClick={() => {
+                            if (submission.status === 'completed' && submission.completedFileUrl) {
+                              // Open filled document in new tab
+                              window.open(submission.completedFileUrl, '_blank');
+                            } else {
+                              // Open submission form for pending/sent submissions
+                              const submissionLink = submission.recipients[0]?.submissionLink;
+                              if (submissionLink) {
+                                window.open(submissionLink, '_blank');
+                              }
+                            }
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                        >
+                          <Eye className="h-4 w-4" />
+                          {submission.status === 'completed' ? 'VIEW DOCUMENT' : 'VIEW FORM'}
+                        </button>
+                        {submission.status === 'completed' && submission.completedFileUrl && (
+                          <a
+                            href={submission.completedFileUrl}
+                            download
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                          >
+                            <Download className="h-4 w-4" />
+                            DOWNLOAD
+                          </a>
+                        )}
+                        <button
+                          onClick={() => handleDeleteSubmission(submission.id)}
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-500 hover:text-red-600 border border-gray-300 rounded-lg hover:border-red-300"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

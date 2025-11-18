@@ -199,12 +199,13 @@ export default function SubmissionForm({ submission, recipient, submissionId }: 
           {/* PDF Background */}
           <iframe
             src={`${template.pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-            className="w-full h-[842px] border-0" 
+            className="w-full border-0" 
+            style={{ height: '3000px' }}
             title="Document Preview"
           />
           
           {/* Overlay container with interactive fields */}
-          <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+          <div className="absolute top-0 left-0 w-full pointer-events-none" style={{ height: '3000px' }}>
             {template.placeholders && template.placeholders.map((placeholder: any) => {
               const fieldStyle = {
                 left: `${placeholder.x}px`,

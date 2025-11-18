@@ -89,7 +89,7 @@ export function detectFontAtPosition(
  */
 export function recommendFontSize(
   fieldWidth: number,
-  fieldType: 'text' | 'number' | 'email' | 'date',
+  fieldType: 'text' | 'number' | 'email' | 'date' | 'signature' | 'checkbox',
   baseFontSize: number = 11
 ): number {
   // Adjust based on field width
