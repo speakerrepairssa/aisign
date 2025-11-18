@@ -22,7 +22,7 @@ function TemplateDetailContent() {
   const [template, setTemplate] = useState<DocType | null>(null);
   const [loading, setLoading] = useState(true);
   const [showRecipientsModal, setShowRecipientsModal] = useState(false);
-  const { submissions, loading: submissionsLoading } = useSubmissions(
+  const { submissions, loading: submissionsLoading, error: submissionsError } = useSubmissions(
     templateId || undefined,
     undefined,
     user?.uid
