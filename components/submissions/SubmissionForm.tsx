@@ -220,37 +220,76 @@ export default function SubmissionForm({ submission, recipient, submissionId }: 
                   style={fieldStyle}
                 >
                   {placeholder.type === 'signature' ? (
-                    <div className="relative w-full h-full">
+                    <div className="relative w-full h-full group">
                       {formData[placeholder.id] ? (
                         // Show signed signature image
                         <div 
-                          className="w-full h-full border-3 border-blue-500 bg-white rounded shadow-lg overflow-hidden cursor-pointer group"
+                          className="w-full h-full border-4 border-emerald-500 bg-white rounded-lg shadow-xl overflow-hidden cursor-pointer relative animate-pulse-slow"
                           onClick={() => handleOpenSignaturePad(placeholder.id)}
+                          style={{
+                            boxShadow: '0 0 20px rgba(16, 185, 129, 0.3), 0 10px 25px rgba(0, 0, 0, 0.1)'
+                          }}
                         >
                           <img 
                             src={formData[placeholder.id]} 
                             alt="Signature" 
-                            className="w-full h-full object-contain"
+                            className="w-full h-full object-contain p-2"
                           />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <div className="text-white text-sm flex items-center gap-2">
-                              <Edit3 className="w-4 h-4" />
-                              Click to change
+                          {/* Signed Badge */}
+                          <div className="absolute top-2 right-2 bg-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg flex items-center gap-1">
+                            ✓ Signed
+                          </div>
+                          {/* Hover overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <div className="text-white text-sm font-semibold flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform">
+                              <Edit3 className="w-5 h-5" />
+                              Click to Re-sign
                             </div>
                           </div>
                         </div>
                       ) : (
-                        // Show sign button
+                        // Show sign button with enhanced design
                         <button
                           type="button"
                           onClick={() => handleOpenSignaturePad(placeholder.id)}
-                          className="w-full h-full px-3 border-3 border-blue-500 bg-blue-50/90 backdrop-blur-sm rounded shadow-lg hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-colors flex items-center justify-center gap-2 text-blue-700 font-semibold"
+                          className="relative w-full h-full px-4 border-4 border-dashed border-blue-500 bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50 backdrop-blur-sm rounded-lg shadow-xl hover:shadow-2xl hover:border-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-400 transition-all duration-300 flex flex-col items-center justify-center gap-2 text-blue-700 font-bold overflow-hidden group"
                           title={placeholder.label || 'Click to sign'}
+                          style={{
+                            boxShadow: '0 0 30px rgba(59, 130, 246, 0.2), 0 10px 25px rgba(0, 0, 0, 0.1)'
+                          }}
                         >
-                          <Edit3 className="w-5 h-5" />
-                          <span style={{ fontSize: `${Math.min(placeholder.height * 0.4, 16)}px` }}>
-                            Click to Sign
-                          </span>
+                          {/* Sparkle animations */}
+                          <div className="absolute inset-0 opacity-30">
+                            <div className="absolute top-2 left-2 w-2 h-2 bg-yellow-300 rounded-full animate-ping"></div>
+                            <div className="absolute top-3 right-4 w-1 h-1 bg-blue-400 rounded-full animate-pulse"></div>
+                            <div className="absolute bottom-4 left-6 w-1.5 h-1.5 bg-indigo-400 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
+                            <div className="absolute bottom-3 right-3 w-1 h-1 bg-yellow-400 rounded-full animate-pulse" style={{ animationDelay: '0.7s' }}></div>
+                          </div>
+                          
+                          {/* Animated pen icon */}
+                          <div className="transform group-hover:scale-110 group-hover:rotate-12 transition-transform duration-300">
+                            <Edit3 className="w-8 h-8 text-blue-600" />
+                          </div>
+                          
+                          {/* Text */}
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="text-lg font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                              SIGN HERE
+                            </span>
+                            <span className="text-xs text-blue-600 font-medium">
+                              ✍️ Click to add your signature
+                            </span>
+                          </div>
+                          
+                          {/* Bottom accent line */}
+                          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-500 group-hover:h-2 transition-all"></div>
+                          
+                          {/* Required indicator */}
+                          {placeholder.required && (
+                            <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-bounce">
+                              Required
+                            </div>
+                          )}
                         </button>
                       )}
                     </div>

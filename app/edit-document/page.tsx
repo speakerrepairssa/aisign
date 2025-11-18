@@ -528,19 +528,28 @@ function EditTemplateContent() {
 
                   {/* Placeholder overlays */}
                   <div className="absolute inset-0 pointer-events-none">
-                    {placeholders.map((placeholder) => (
+                    {placeholders.map((placeholder) => {
+                      const isSignature = placeholder.type === 'signature';
+                      const isSelected = selectedPlaceholder === placeholder.id;
+                      
+                      return (
                       <div
                         key={placeholder.id}
-                        className={`absolute border-2 pointer-events-auto ${
-                          selectedPlaceholder === placeholder.id
-                            ? 'border-primary-600 bg-primary-200'
-                            : 'border-blue-400 bg-blue-100'
-                        } bg-opacity-40 hover:bg-opacity-60 transition-all cursor-move group`}
+                        className={`absolute border-3 pointer-events-auto transition-all cursor-move group ${
+                          isSelected
+                            ? isSignature 
+                              ? 'border-blue-600 bg-blue-200 shadow-2xl ring-4 ring-blue-400 ring-opacity-50'
+                              : 'border-primary-600 bg-primary-200 shadow-2xl ring-4 ring-primary-400 ring-opacity-50'
+                            : isSignature
+                              ? 'border-blue-400 bg-blue-100 shadow-lg hover:shadow-xl hover:border-blue-500'
+                              : 'border-purple-400 bg-purple-100 shadow-lg hover:shadow-xl hover:border-purple-500'
+                        } bg-opacity-50 hover:bg-opacity-70`}
                         style={{
                           left: `${placeholder.x}px`,
                           top: `${placeholder.y}px`,
                           width: `${placeholder.width}px`,
                           height: `${placeholder.height}px`,
+                          transform: isSelected ? 'scale(1.02)' : 'scale(1)',
                         }}
                         onMouseDown={(e) => handleMouseDown(e, placeholder.id)}
                         onClick={(e) => {
@@ -548,15 +557,33 @@ function EditTemplateContent() {
                           setSelectedPlaceholder(placeholder.id);
                         }}
                       >
-                        <div className="flex items-center justify-between p-1 bg-white bg-opacity-90">
-                          <GripVertical className="h-3 w-3 text-gray-500" />
-                          <div className="text-xs font-medium text-primary-800 truncate flex-1 mx-1">
+                        {/* Sparkle effect for signature fields */}
+                        {isSignature && (
+                          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                            <div className="absolute top-1 left-1 w-1.5 h-1.5 bg-yellow-400 rounded-full animate-ping opacity-75"></div>
+                            <div className="absolute top-1 right-1 w-1 h-1 bg-blue-300 rounded-full animate-pulse opacity-75"></div>
+                            <div className="absolute bottom-1 left-2 w-1 h-1 bg-indigo-400 rounded-full animate-ping opacity-75" style={{ animationDelay: '0.5s' }}></div>
+                            <div className="absolute bottom-1 right-2 w-1.5 h-1.5 bg-yellow-300 rounded-full animate-pulse opacity-75" style={{ animationDelay: '0.7s' }}></div>
+                          </div>
+                        )}
+                        
+                        <div className={`flex items-center justify-between p-1.5 ${
+                          isSignature 
+                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600' 
+                            : placeholder.type === 'date'
+                              ? 'bg-gradient-to-r from-green-600 to-emerald-600'
+                              : 'bg-gradient-to-r from-purple-600 to-pink-600'
+                        } bg-opacity-95 shadow-md`}>
+                          <GripVertical className="h-3.5 w-3.5 text-white" />
+                          <div className="text-xs font-bold text-white truncate flex-1 mx-1 flex items-center gap-1">
+                            {isSignature && '✍️'} 
+                            {placeholder.type === 'date' && '📅'} 
                             {placeholder.label}
                           </div>
-                          <div className="text-[10px] text-gray-500 flex flex-col items-end">
-                            <div>{placeholder.width}x{placeholder.height}</div>
-                            <div className="text-primary-600 font-semibold">
-                              ~{getCharacterCapacity(placeholder).capacity} chars
+                          <div className="text-[10px] text-white flex flex-col items-end bg-black/20 rounded px-1.5 py-0.5">
+                            <div className="font-semibold">{placeholder.width}×{placeholder.height}</div>
+                            <div className="text-yellow-300 font-bold">
+                              ~{getCharacterCapacity(placeholder).capacity}ch
                             </div>
                           </div>
                         </div>
@@ -609,7 +636,8 @@ function EditTemplateContent() {
                           </>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>

@@ -13,7 +13,7 @@ export interface Placeholder {
   align?: 'left' | 'center' | 'right';
   maxLength?: number;
   required: boolean;
-  type: 'text' | 'number' | 'date' | 'email';
+  type: 'text' | 'number' | 'date' | 'email' | 'signature' | 'checkbox';
   defaultValue?: string;
   recommendedFontSize?: number; // AI-detected recommendation
   recommendedFontFamily?: string; // AI-detected recommendation
